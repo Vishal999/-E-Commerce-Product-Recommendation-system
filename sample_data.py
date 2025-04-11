@@ -1,53 +1,75 @@
-mport os
 import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import OneHotEncoder
 
-
-# Step 2: Create fresh sample product data
-sample_data = {
-    'product_id': ['101', '102', '103', '104'],
-    'product_name': ['Wireless Mouse', 'Bluetooth Headphones', 'Smart Watch', 'USB-C Hub'],
-    'about_product': [
-        'A smooth wireless mouse with ergonomic design.',
-        'Noise-cancelling over-ear headphones with Bluetooth 5.0.',
-        'Fitness smart watch with heart rate monitor.',
-        'Multi-port USB-C hub with HDMI and SD card reader.'
+# ------------------------------
+# Step 1: Define Products with Categories
+# ------------------------------
+products_data = {
+    'product_id': ['P001', 'P002', 'P003', 'P004', 'P005', 'P006', 'P007'],
+    'product_name': [
+        'Wireless Mouse', 'Sports Shoes', 'Cotton T-Shirt',
+        'Smartphone', 'Blender', 'Organic Apple', 'Bluetooth Speaker'
     ],
-    'category': ['Electronics', 'Audio', 'Wearables', None],
-    'rating_count': ['1,200', '2,500', '900', '600']
+    'category': [
+        'Electronics', 'Fashion', 'Fashion',
+        'Mobiles', 'Home Appliances', 'Groceries', 'Electronics'
+    ],
+    'brand': [
+        'Logitech', 'Nike', 'H&M',
+        'Samsung', 'Philips', 'Whole Foods', 'boAt'
+    ],
+    'price': [25, 60, 20, 300, 45, 5, 40]
 }
 
-# Step 3: Convert to DataFrame
-df_sample = pd.DataFrame(sample_data)
+products_df = pd.DataFrame(products_data)
 
-# Step 4: Create directory if it doesn't exist
-os.makedirs("amazon_data", exist_ok=True)
+# ------------------------------
+# Step 2: Encode Features for Similarity
+# ------------------------------
+product_features = products_df[['category', 'brand']]
+encoder = OneHotEncoder()
+encoded_features = encoder.fit_transform(product_features).toarray()
 
-# Step 5: Overwrite the CSV file with sample data
-df_sample.to_csv(csv_path, index=False)
-print("CSV file overwritten with new sample data.")
+# Optional: add price category (low/medium/high)
+def price_category(price):
+    if price <= 20:
+        return 'low'
+    elif price <= 100:
+        return 'medium'
+    else:
+        return 'high'
 
-# Step 6: Define function to load and process data
-def get_product_data():
-    df = pd.read_csv(csv_path)
+products_df['price_category'] = products_df['price'].apply(price_category)
+price_encoded = OneHotEncoder().fit_transform(products_df[['price_category']]).toarray()
 
-    # Rename relevant columns
-    df = df.rename(columns={
-        'product_id': 'id',
-        'product_name': 'name',
-        'about_product': 'description'
-    })
+# Combine all features
+import numpy as np
+combined_features = np.hstack((encoded_features, price_encoded))
 
-    # Clean and prepare fields
-    df['id'] = df['id'].astype(str)
-    df['description'] = df['description'].fillna('')
-    df['category'] = df['category'].fillna('General')
+# ------------------------------
+# Step 3: Compute Content Similarity
+# ------------------------------
+content_similarity = cosine_similarity(combined_features)
 
-    # Compute popularity score
-    df['rating_count'] = df['rating_count'].replace(',', '', regex=True).astype(float)
-    df['popularity_score'] = df['rating_count'] / df['rating_count'].max() * 10
+# Make DataFrame with product_ids
+product_similarity_df = pd.DataFrame(
+    content_similarity,
+    index=products_df['product_id'],
+    columns=products_df['product_id']
+)
 
-    return df[['id', 'name', 'description', 'category', 'popularity_score']]
+# ------------------------------
+# Step 4: Recommend Similar Products
+# ------------------------------
+def recommend_similar_products(product_id, top_n=3):
+    if product_id not in product_similarity_df.columns:
+        return "Product not found!"
+    similar_scores = product_similarity_df[product_id].sort_values(ascending=False)[1:top_n+1]
+    return products_df[products_df['product_id'].isin(similar_scores.index)][['product_name', 'category', 'brand']]
 
-# Step 7: Print processed product data
-print("\nProcessed Product Data:")
-print(get_product_data())
+# ------------------------------
+# Example Usage
+# ------------------------------
+print("🔁 Products similar to 'Smartphone' (P004):")
+print(recommend_similar_products("P004"))
