@@ -1,75 +1,30 @@
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import OneHotEncoder
-
-# ------------------------------
-# Step 1: Define Products with Categories
-# ------------------------------
-products_data = {
-    'product_id': ['P001', 'P002', 'P003', 'P004', 'P005', 'P006', 'P007'],
-    'product_name': [
-        'Wireless Mouse', 'Sports Shoes', 'Cotton T-Shirt',
-        'Smartphone', 'Blender', 'Organic Apple', 'Bluetooth Speaker'
-    ],
-    'category': [
-        'Electronics', 'Fashion', 'Fashion',
-        'Mobiles', 'Home Appliances', 'Groceries', 'Electronics'
-    ],
-    'brand': [
-        'Logitech', 'Nike', 'H&M',
-        'Samsung', 'Philips', 'Whole Foods', 'boAt'
-    ],
-    'price': [25, 60, 20, 300, 45, 5, 40]
-}
-
-products_df = pd.DataFrame(products_data)
-
-# ------------------------------
-# Step 2: Encode Features for Similarity
-# ------------------------------
-product_features = products_df[['category', 'brand']]
-encoder = OneHotEncoder()
-encoded_features = encoder.fit_transform(product_features).toarray()
-
-# Optional: add price category (low/medium/high)
-def price_category(price):
-    if price <= 20:
-        return 'low'
-    elif price <= 100:
-        return 'medium'
-    else:
-        return 'high'
-
-products_df['price_category'] = products_df['price'].apply(price_category)
-price_encoded = OneHotEncoder().fit_transform(products_df[['price_category']]).toarray()
-
-# Combine all features
-import numpy as np
-combined_features = np.hstack((encoded_features, price_encoded))
-
-# ------------------------------
-# Step 3: Compute Content Similarity
-# ------------------------------
-content_similarity = cosine_similarity(combined_features)
-
-# Make DataFrame with product_ids
-product_similarity_df = pd.DataFrame(
-    content_similarity,
-    index=products_df['product_id'],
-    columns=products_df['product_id']
-)
-
-# ------------------------------
-# Step 4: Recommend Similar Products
-# ------------------------------
-def recommend_similar_products(product_id, top_n=3):
-    if product_id not in product_similarity_df.columns:
-        return "Product not found!"
-    similar_scores = product_similarity_df[product_id].sort_values(ascending=False)[1:top_n+1]
-    return products_df[products_df['product_id'].isin(similar_scores.index)][['product_name', 'category', 'brand']]
-
-# ------------------------------
-# Example Usage
-# ------------------------------
-print("🔁 Products similar to 'Smartphone' (P004):")
-print(recommend_similar_products("P004"))
+ 
+ def get_product_data():
+     data = {
+         'id': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+         'name': [
+             'Laptop Pro X', 'Wireless Mouse G', 'Mechanical Keyboard K', '4K Monitor Z',
+             'Smartphone S10', 'Noise Cancelling Headphones H', 'Smartwatch W2',
+             'Portable SSD P', 'Gaming Chair C', 'Webcam V5'
+         ],
+         'description': [
+             'High performance laptop for professionals. Fast CPU and GPU.',
+             'Ergonomic wireless mouse with long battery life. Precise tracking.',
+             'RGB mechanical keyboard with tactile switches. Great for gaming.',
+             'Stunning 27-inch 4K monitor with HDR support. Excellent colors.',
+             'Latest generation smartphone with amazing camera and display.',
+             'Over-ear headphones with active noise cancellation. Immersive audio.',
+             'Feature-rich smartwatch with fitness tracking and notifications.',
+             'Fast and reliable 1TB portable solid state drive. USB-C interface.',
+             'Comfortable gaming chair with lumbar support and adjustable armrests.',
+             'Full HD 1080p webcam with built-in microphone. Clear video calls.'
+         ],
+         'category': [
+             'Electronics', 'Accessories', 'Accessories', 'Electronics',
+             'Electronics', 'Accessories', 'Wearables',
+             'Storage', 'Furniture', 'Accessories'
+         ],
+         'popularity_score': [8, 7, 6, 9, 10, 8, 7, 5, 6, 7]
+     }
+     return pd.DataFrame(data)
